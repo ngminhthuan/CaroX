@@ -1,24 +1,28 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class Tile : MonoBehaviour
 {
-    [SerializeField] int x;
-    [SerializeField] int y;
-    public Side Side = Side.None;
+    public int x, y;
+    public Side Side = Side.None; // 0 = empty, 1 = Player X, 2 = Player O
+    [SerializeField] GameObject X_Sprite;
+    [SerializeField] GameObject O_Sprite;
 
-    // Start is called before the first frame update
-    void Start()
+    public void OnEnable()
     {
-        
+        UpdateSprite();
+    }
+    void OnMouseDown()
+    {
+        // Check if it's the human player's turn and the tile is empty
+        if (Side == Side.None && BoardManager.Instance.CurrentPlayer is HumanPlayer humanPlayer && !BoardManager.Instance.isEndGame())
+        {
+            // Create move and notify human player
+            Move move = new Move(x, y);
+            Debug.Log("PLayer move");
+            humanPlayer.PlayerMakeMove(move, humanPlayer);
+        }
     }
 
-    // Update is called once per frame
-    void Update()
-    {
-        
-    }
 
     public void SetPosition(int x, int y)
     {
@@ -26,15 +30,23 @@ public class Tile : MonoBehaviour
         this.y = y;
     }
 
-    public void SetState(Side side)
+    public void SetState(Side player)
     {
-        this.Side = side;
+        Side = player;
+        UpdateSprite();
+        // Visual: show X or O
+        // Example: this.GetComponent<SpriteRenderer>().sprite = (player == 1) ? Xsprite : Osprite;
+    }
 
+    public void UpdateSprite()
+    {
+        this.X_Sprite.SetActive(Side == Side.X);
+        this.O_Sprite.SetActive(Side == Side.O);
     }
 }
 
 
 public class SimTile
 {
-    public Side Side;
+    public Side Side = Side.None;
 }

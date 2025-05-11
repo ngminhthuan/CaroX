@@ -1,15 +1,26 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
 public class AI_Monte : Player
 {
-    public int simulationsPerMove = 100;
-    SimTile[,] boardCopy;
+    public int simulationsPerMove = 30;
     public override void NotifyTurnToMove()
     {
         base.NotifyTurnToMove();
-        Debug.Log("Monte Carlo selected move: ");
+        StartCoroutine(this.MakeMove());
+
+    }
+    IEnumerator MakeMove()
+    {
+        yield return new WaitForSeconds(2f);
         Move bestMove = GetBestMove();
+        if (bestMove == null)
+        {
+            Debug.LogWarning("Monte Carlo AI did not find a move.");
+            yield break;
+        }
+
         BoardManager.Instance.PlaceMark(bestMove.x, bestMove.y);
         ChoseMove(bestMove, this);
     }
@@ -17,29 +28,69 @@ public class AI_Monte : Player
     public Move GetBestMove()
     {
         List<Move> legalMoves = GetAllLegalMoves();
+
+        if (legalMoves == null || legalMoves.Count == 0)
+        {
+            Debug.LogWarning("No legal moves available for Monte Carlo AI.");
+            return null;
+        }
+
+        foreach (var move in legalMoves)
+        {
+            var boardCopy = CloneBoard();
+            boardCopy[move.x, move.y].Side = currentSide;
+
+            if (CheckWinSim(move.x, move.y, currentSide, boardCopy))
+            {
+                Debug.Log("AI wins immediately with move: " + move);
+                return move;
+            }
+        }
+
+        foreach (var move in legalMoves)
+        {
+            var boardCopy = CloneBoard();
+            boardCopy[move.x, move.y].Side = opponentSide;
+
+            if (CheckWinSim(move.x, move.y, opponentSide, boardCopy))
+            {
+                Debug.Log("AI blocks opponent's win with move: " + move);
+                return move;
+            }
+        }
+
         Move bestMove = legalMoves[0];
         float bestWinRate = -1f;
 
         foreach (var move in legalMoves)
         {
             int wins = 0;
+            int i = 0;
 
-            for (int i = 0; i < simulationsPerMove; i++)
+            for (; i < simulationsPerMove; i++)
             {
                 if (SimulateGame(move))
                     wins++;
+
+                if (wins == i + 1 && wins >= 15)
+                    break;
             }
 
-            float winRate = (float)wins / simulationsPerMove;
+            float winRate = (float)wins / (i + 1);
+
             if (winRate > bestWinRate)
             {
                 bestWinRate = winRate;
                 bestMove = move;
+
+                if (winRate == 1f)
+                    break;
             }
         }
 
         return bestMove;
     }
+
 
     List<Move> GetAllLegalMoves()
     {
@@ -62,14 +113,15 @@ public class AI_Monte : Player
 
     bool SimulateGame(Move firstMove)
     {
-        CloneBoard();
+        var boardCopy = CloneBoard(); // use local variable
 
-        this.boardCopy[firstMove.x, firstMove.y].Side = currentSide;
+        boardCopy[firstMove.x, firstMove.y].Side = currentSide;
 
         if (CheckWinSim(firstMove.x, firstMove.y, currentSide, boardCopy))
             return true;
 
         List<Move> moves = GetAllLegalMoves(boardCopy);
+
         for (int i = moves.Count - 1; i >= 0; i--)
         {
             if (moves[i].x == firstMove.x && moves[i].y == firstMove.y)
@@ -96,22 +148,23 @@ public class AI_Monte : Player
         return false;
     }
 
-    void CloneBoard()
+    SimTile[,] CloneBoard()
     {
         int size = BoardManager.Instance.boardSize;
-        if (this.boardCopy == null)
-        {
-            this.boardCopy = new SimTile[size, size];
-        }
+        SimTile[,] copy = new SimTile[size, size];
+
         for (int x = 0; x < size; x++)
         {
             for (int y = 0; y < size; y++)
             {
-                this.boardCopy[x, y] = new SimTile();
-                this.boardCopy[x, y].Side = BoardManager.Instance.tiles[x, y].Side;
+                copy[x, y] = new SimTile();
+                copy[x, y].Side = BoardManager.Instance.tiles[x, y].Side;
             }
         }
+
+        return copy;
     }
+
 
     List<Move> GetAllLegalMoves(SimTile[,] board)
     {

@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -9,11 +10,22 @@ public class AI_MinMax : Player
     {
         base.NotifyTurnToMove();
 
+        StartCoroutine(this.MakeMove());
+
+    }
+    IEnumerator MakeMove()
+    {
+        yield return new WaitForSeconds(2f);
         Move bestMove = GetBestMove();
-        Debug.Log("????? " + bestMove);
+        if (bestMove == null)
+        {
+            Debug.LogWarning("Monte Carlo AI did not find a move.");
+            yield break;
+        }
         BoardManager.Instance.PlaceMark(bestMove.x, bestMove.y);
         ChoseMove(bestMove, this);
     }
+
 
     public Move GetBestMove()
     {

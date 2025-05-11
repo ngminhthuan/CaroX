@@ -1,4 +1,5 @@
-using System.Drawing;
+using System.Collections.Generic;
+using UnityEditor.U2D.Aseprite;
 using UnityEngine;
 
 public class BoardManager : MonoBehaviour
@@ -16,6 +17,9 @@ public class BoardManager : MonoBehaviour
     Player X_Player;
     Player O_Player;
     Player playerToMove;
+
+    [SerializeField] AI_MinMax AI_MinMax;
+    [SerializeField] AI_Monte AI_Monte;
     public Player CurrentPlayer => playerToMove;
     bool is_X_Turn;
     Result gameResult;
@@ -62,7 +66,6 @@ public class BoardManager : MonoBehaviour
     public void PlaceMark(int x, int y)
     {
         if (tiles[x, y].Side != Side.None) return;
-        Debug.Log("Set Side" + currentSide);
         tiles[x, y].SetState(currentSide);
 
         if (CheckWin(x, y, currentSide))
@@ -79,6 +82,7 @@ public class BoardManager : MonoBehaviour
             // Disable board or show win screen
             return;
         }
+
         currentSide = (currentSide == Side.X) ? Side.O : Side.X;
     }
 
@@ -124,16 +128,19 @@ public class BoardManager : MonoBehaviour
         if (playerType == PlayerType.Human)
         {
             player = new HumanPlayer();
+            Debug.Log("Player");
         }
 
         else if (playerType == PlayerType.AI_MinMax)
         {
             player = new AI_MinMax();
+            Debug.Log("AI Minmax");
+
         }
         else if (playerType == PlayerType.AI_Monte)
         {
-            player = new AI_Monte();
-
+            player = this.AI_Monte;
+            Debug.Log("AI Monte");
         }
         player.onMoveChosen += OnMoveChosen;
         return player;
@@ -141,34 +148,6 @@ public class BoardManager : MonoBehaviour
 
     void OnMoveChosen(Move move, Player player)
     {
-        /* //Thuan
-         // Listen to Server Move here hehehe
-         bool animateMove = playerToMove is AIPlayer;
-         // Convert move to coordinate notation (e.g., "e2e4")
-         string startCoord = GetSquareCoordinate(move.StartSquare);
-         string targetCoord = GetSquareCoordinate(move.TargetSquare);
-
-         // Create the move coordinate
-
-         // If board perspective has black at the bottom, swap the coordinates to match server expectations
-         if (!ChessMatchPopup.Param.IsOffline)
-         {
-
-             _networkManager.NetworkChessGameController.MovePiece(ChessMatchPopup.Param.RoomInfo.RoomId, startCoord, targetCoord, move.PromoteToStr);
-
-         }
-
-
-         board.MakeMove(move);
-         searchBoard.MakeMove(move);
-
-         gameMoves.Add(move);
-         onMoveMade?.Invoke(move);
-         boardUI.OnMoveMade(board, move, animateMove);
-
-
-
-         */
         this.is_X_Turn = !this.is_X_Turn;
         NotifyPlayerToMove();
     }
@@ -193,8 +172,8 @@ public class BoardManager : MonoBehaviour
     {
         return gameResult != Result.Playing;
     }
-}
 
+}
 public enum Result
 {
     Playing,

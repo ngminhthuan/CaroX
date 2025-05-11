@@ -2,7 +2,7 @@ using System;
 using System.Drawing;
 using UnityEngine;
 
-public class Player 
+public class Player : MonoBehaviour
 {
     public event System.Action<Move, Player> onMoveChosen;
     public Side currentSide = Side.O;
@@ -12,7 +12,6 @@ public class Player
     {
         this.currentSide = currentSide;
         this.opponentSide = (currentSide == Side.X) ? Side.O : Side.X;
-        Debug.Log("Current Side: " + currentSide);
     }
     public virtual void Update()
     {
