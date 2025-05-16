@@ -9,7 +9,6 @@ public class AI_MinMax : Player
     public override void NotifyTurnToMove()
     {
         base.NotifyTurnToMove();
-
         StartCoroutine(this.MakeMove());
 
     }
@@ -31,7 +30,7 @@ public class AI_MinMax : Player
     {
         // 1. Try to win
 
-        Move? criticalBlock = null;
+        Move criticalBlock = null;
         int highestThreat = 0;
         foreach (var move in GetAllLegalMoves())
         {

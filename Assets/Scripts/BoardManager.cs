@@ -1,5 +1,4 @@
-using System.Collections.Generic;
-using UnityEditor.U2D.Aseprite;
+using TMPro;
 using UnityEngine;
 
 public class BoardManager : MonoBehaviour
@@ -23,6 +22,7 @@ public class BoardManager : MonoBehaviour
     public Player CurrentPlayer => playerToMove;
     bool is_X_Turn;
     Result gameResult;
+    public TMP_Text Result_Text;
     void Awake()
     {
         if (Instance == null)
@@ -37,24 +37,40 @@ public class BoardManager : MonoBehaviour
 
     void Start()
     {
-        CreateBoard();
+
     }
     #region Board
-    void CreateBoard()
+    public void CreateBoard(PlayerType xPlayerType , PlayerType oPlayerType )
     {
-        tiles = new Tile[boardSize, boardSize];
-        for (int x = 0; x < boardSize; x++)
+        if (tiles == null)
         {
-            for (int y = 0; y < boardSize; y++)
+            tiles = new Tile[boardSize, boardSize];
+            for (int x = 0; x < boardSize; x++)
             {
-                GameObject tileGO = Instantiate(tilePrefab, new Vector3(x, y, 0), Quaternion.identity);
-                tileGO.transform.parent = this.transform;
-                Tile tile = tileGO.GetComponent<Tile>();
-                tile.SetPosition(x, y);
-                tiles[x, y] = tile;
+                for (int y = 0; y < boardSize; y++)
+                {
+                    GameObject tileGO = Instantiate(tilePrefab, new Vector3(x, y, 0), Quaternion.identity);
+                    tileGO.transform.parent = this.transform;
+                    Tile tile = tileGO.GetComponent<Tile>();
+                    tile.SetPosition(x, y);
+                    tiles[x, y] = tile;
+                }
+            }
+
+        }
+        else
+        {
+            for (int x = 0; x < boardSize; x++)
+            {
+                for (int y = 0; y < boardSize; y++)
+                {
+                    tiles[x, y].SetState(Side.None);
+                }
             }
         }
-
+        Result_Text.text = "";
+        X_PlayerType = xPlayerType;
+        O_PlayerType = oPlayerType;                                                             
         CreatePlayer(ref X_Player, X_PlayerType).SetSide(Side.X);
         CreatePlayer(ref O_Player, O_PlayerType).SetSide(Side.O);
         this.is_X_Turn = true;
@@ -67,19 +83,20 @@ public class BoardManager : MonoBehaviour
     {
         if (tiles[x, y].Side != Side.None) return;
         tiles[x, y].SetState(currentSide);
-
+        string PlayerWinType = "";
         if (CheckWin(x, y, currentSide))
         {
-            Debug.Log("Player " + currentSide + " wins!");
             if (currentSide == Side.X)
             {
                 this.gameResult = Result.XisWin;
+                PlayerWinType = X_PlayerType.ToString();
             }
             else
             {
                 this.gameResult = Result.OisWin;
+                PlayerWinType = O_PlayerType.ToString();
             }
-            // Disable board or show win screen
+            Result_Text.text = PlayerWinType + " in " + currentSide + " side win!";
             return;
         }
 
@@ -133,7 +150,7 @@ public class BoardManager : MonoBehaviour
 
         else if (playerType == PlayerType.AI_MinMax)
         {
-            player = new AI_MinMax();
+            player = this.AI_MinMax;
             Debug.Log("AI Minmax");
 
         }
@@ -155,18 +172,28 @@ public class BoardManager : MonoBehaviour
 
     void NotifyPlayerToMove()
     {
-
         if (gameResult == Result.Playing)
         {
             playerToMove = (this.is_X_Turn) ? X_Player : O_Player;
-            playerToMove.NotifyTurnToMove();
 
+            // Log board state
+            int freeTiles = 0;
+            foreach (var tile in BoardManager.Instance.tiles)
+                if (tile.Side == Side.None) freeTiles++;
+
+            if (freeTiles <= 0 && this.gameResult == Result.Playing) { 
+                this.gameResult = Result.Stalement;
+                this.Result_Text.text = "Stalement";
+            }
+
+            playerToMove.NotifyTurnToMove();
         }
         else
         {
             Debug.Log("Game Over");
         }
     }
+
 
     public bool isEndGame()
     {
